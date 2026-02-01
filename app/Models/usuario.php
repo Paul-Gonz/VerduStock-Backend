@@ -43,10 +43,9 @@ class Usuario extends Authenticatable
         'updated_at' => 'datetime'
     ];
 
-    // Método OBLIGATORIO para autenticación
     public function getAuthIdentifier()
     {
-        return $this->nombre;  // Devuelve el nombre, no el id
+        return $this->nombre;  
     }
 
     public function getAuthPassword()
