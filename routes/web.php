@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProveedoresController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\AuthController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -50,3 +52,32 @@ Route::prefix('productos')->group(function () {
     Route::get('/alto-desperdicio', [ProductoController::class, 'altoDesperdicio'])->name('productos.alto-desperdicio');
     
   });
+
+    //Login/Logout
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    //Registro de Usuario
+    Route::post('/usuarios', [UsuarioController::class, 'store']);
+    Route::get('/check-auth', [AuthController::class, 'checkAuth']);
+    Route::get('/usuarios/{id}/basic-info', [UsuarioController::class, 'show']);
+
+    Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', [UsuarioController::class, 'profile']);
+    Route::put('/profile', [UsuarioController::class, 'updateProfile']);
+    Route::delete('/delete-account', [UsuarioController::class, 'destroy']);
+    
+    // Dashboard
+    Route::get('/dashboard', function () {
+        return response()->json([
+            'success' => true,
+            'message' => 'Bienvenido al dashboard',
+            'data' => [
+                'user' => auth()->user()->only(['id', 'nombre'])
+            ]
+        ]);
+    });
+});
+
+Route::get('/login-form', [AuthController::class, 'showLoginForm'])->name('login.form');
+Route::get('/register-form', [AuthController::class, 'showRegisterForm'])->name('register.form');

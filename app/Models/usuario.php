@@ -1,0 +1,93 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class Usuario extends Authenticatable
+{
+    use HasFactory, Notifiable;
+
+    protected $table = 'usuarios';
+
+    // ¡IMPORTANTE! Especifica que usas 'nombre' como identificador
+    protected $primaryKey = 'nombre';  // Esto cambia el campo primario
+    
+    // Si quieres mantener 'id' como PK pero usar 'nombre' para auth
+    // NO uses la línea de arriba, usa esto:
+    public function getAuthIdentifierName()
+    {
+        return 'nombre';  // Pero Laravel buscará por 'id' igual
+    }
+
+    // Mejor solución: Usar 'id' como PK normal pero buscar por 'nombre'
+    public function username()
+    {
+        return 'nombre';
+    }
+
+    protected $fillable = [
+        'nombre',
+        'password',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
+    ];
+
+    // Método OBLIGATORIO para autenticación
+    public function getAuthIdentifier()
+    {
+        return $this->nombre;  // Devuelve el nombre, no el id
+    }
+
+    public function getAuthPassword()
+    {
+        return $this->password;
+    }
+
+    public function getRememberToken()
+    {
+        return $this->remember_token;
+    }
+
+    public function setRememberToken($value)
+    {
+        $this->remember_token = $value;
+    }
+
+    public function getRememberTokenName()
+    {
+        return 'remember_token';
+    }
+
+    // Para compatibilidad con reset password
+    public function getEmailForPasswordReset()
+    {
+        return $this->nombre;
+    }
+
+    // Para notificaciones
+    public function routeNotificationFor($driver, $notification = null)
+    {
+        return $this->nombre;
+    }
+
+    public function productos()
+    {
+        return $this->hasMany(Producto::class, 'usuario_id');
+    }
+
+    public function setNombreAttribute($value)
+    {
+        $this->attributes['nombre'] = trim($value);
+    }
+}
