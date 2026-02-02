@@ -9,7 +9,7 @@ use App\Http\Resources\ProductoResource;
 use App\Repositories\ProductoRepository;
 use App\Models\Categoria;
 use App\Models\Proveedores;
-use App\Models\usuarios;
+use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -69,7 +69,7 @@ class ProductoController extends Controller
         // Este método solo para web, no para API
         $categorias = Categoria::all();
         $proveedores = Proveedores::all();
-        $usuarios = usuarios::all();
+        $usuarios = Usuario::all();
         
         return view('productos.create', compact('categorias', 'proveedores', 'usuarios'));
     }
@@ -207,7 +207,7 @@ class ProductoController extends Controller
             $producto = $this->productoRepository->findOrFail($id);
             $categorias = Categoria::all();
             $proveedores = Proveedores::all();
-            $usuarios = usuarios::all();
+            $usuarios = Usuario::all();
             
             return view('productos.edit', compact('producto', 'categorias', 'proveedores', 'usuarios'));
             

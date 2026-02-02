@@ -16,7 +16,7 @@ class Producto extends Model
     protected $fillable = [
         'nombre',
         'categoria_id',
-        'kilogramos', // Cambiar a 'kilonumeric' si ese es el nombre en BD
+        'kilo',
         'detalle',
         'precio_compra',
         'precio_venta_kg',
@@ -26,7 +26,7 @@ class Producto extends Model
     ];
 
     protected $casts = [
-        'kilogramos' => 'decimal:3',
+        'kilo' => 'decimal:3',
         'precio_compra' => 'decimal:2',
         'precio_venta_kg' => 'decimal:2',
         'desperdicio' => 'decimal:3',
@@ -55,7 +55,7 @@ class Producto extends Model
      */
     public function usuario(): BelongsTo
     {
-        return $this->belongsTo(Usuarios::class, 'usuario_id');
+        return $this->belongsTo(Usuario::class, 'usuario_id');
     }
 
     /**
@@ -63,7 +63,7 @@ class Producto extends Model
      */
     public function getKilogramosNetosAttribute(): float
     {
-        return (float) bcsub($this->kilogramos, $this->desperdicio, 3);
+        return (float) bcsub($this->kilo, $this->desperdicio, 3);
     }
 
     /**
@@ -127,26 +127,21 @@ class Producto extends Model
         return $query->whereBetween('created_at', [$fechaInicio, $fechaFin]);
     }
 
-    /**
-     * IMPORTANTE: Si en BD el campo se llama 'kilonumeric' no 'kilogramos'
-     */
-    public function getKilogramosAttribute()
+    public function getKilogramosAttribute($value)
     {
-        // Si existe campo 'kilonumeric' en BD, usarlo
-        if (isset($this->attributes['kilonumeric'])) {
-            return (float) $this->attributes['kilonumeric'];
+        if (!is_null($value)) {
+            return (float) $value;
         }
-        // Si no, usar 'kilogramos'
-        return (float) ($this->attributes['kilogramos'] ?? 0);
+
+        if (array_key_exists('kilo', $this->attributes)) {
+            return (float) $this->attributes['kilo'];
+        }
+
+        return 0.0;
     }
 
     public function setKilogramosAttribute($value)
     {
-        // Si existe campo 'kilonumeric' en BD, guardar ahí
-        if (isset($this->attributes['kilonumeric'])) {
-            $this->attributes['kilonumeric'] = (float) $value;
-        } else {
-            $this->attributes['kilogramos'] = (float) $value;
-        }
+        $this->attributes['kilo'] = (float) $value;
     }
 }

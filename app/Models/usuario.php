@@ -12,17 +12,7 @@ class Usuario extends Authenticatable
 
     protected $table = 'usuarios';
 
-    // ¡IMPORTANTE! Especifica que usas 'nombre' como identificador
-    protected $primaryKey = 'nombre';  // Esto cambia el campo primario
-    
-    // Si quieres mantener 'id' como PK pero usar 'nombre' para auth
-    // NO uses la línea de arriba, usa esto:
-    public function getAuthIdentifierName()
-    {
-        return 'nombre';  // Pero Laravel buscará por 'id' igual
-    }
-
-    // Mejor solución: Usar 'id' como PK normal pero buscar por 'nombre'
+    // Autenticación vía campo 'nombre'
     public function username()
     {
         return 'nombre';
@@ -42,16 +32,6 @@ class Usuario extends Authenticatable
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
-
-    public function getAuthIdentifier()
-    {
-        return $this->nombre;  
-    }
-
-    public function getAuthPassword()
-    {
-        return $this->password;
-    }
 
     public function getRememberToken()
     {
