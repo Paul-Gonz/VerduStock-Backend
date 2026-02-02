@@ -14,6 +14,7 @@ class CategoriaResource extends JsonResource
             'id' => $this->id,
             'nombre' => $this->nombre,
             'detalle' => $this->detalle,
+            'emoji' => $this->emoji,
             'created_at' => $this->created_at->toIso8601String(), // Formato ISO
             'updated_at' => $this->updated_at->toIso8601String(),
             

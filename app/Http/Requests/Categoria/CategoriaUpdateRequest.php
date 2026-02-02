@@ -24,7 +24,8 @@ class CategoriaUpdateRequest extends FormRequest
                 'max:100',
                 Rule::unique('categorias', 'nombre')->ignore($categoriaId)
             ],
-            'detalle' => 'sometimes|nullable|string'
+            'detalle' => 'sometimes|nullable|string',
+            'emoji' => 'sometimes|nullable|string|max:16',
         ];
     }
 }

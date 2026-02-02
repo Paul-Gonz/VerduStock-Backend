@@ -12,7 +12,8 @@ class Categoria extends Model
     
     protected $fillable = [
         'nombre',
-        'detalle'
+        'detalle',
+        'emoji',
     ];
     
     protected $casts = [

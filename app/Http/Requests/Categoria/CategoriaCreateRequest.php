@@ -16,7 +16,8 @@ class CategoriaCreateRequest extends FormRequest
     {
         return [
             'nombre' => 'required|string|max:100|unique:categorias,nombre',
-            'detalle' => 'nullable|string' // text field
+            'detalle' => 'nullable|string',
+            'emoji' => 'nullable|string|max:16',
         ];
     }
 
