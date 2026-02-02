@@ -144,4 +144,22 @@ class Producto extends Model
     {
         $this->attributes['kilo'] = (float) $value;
     }
+
+    public function getPrecioVentaKgAttribute($value)
+    {
+        if (!is_null($value)) {
+            return (float) $value;
+        }
+
+        if (array_key_exists('precio_ventakg', $this->attributes)) {
+            return (float) $this->attributes['precio_ventakg'];
+        }
+
+        return 0.0;
+    }
+
+    public function setPrecioVentaKgAttribute($value)
+    {
+        $this->attributes['precio_ventakg'] = (float) $value;
+    }
 }
