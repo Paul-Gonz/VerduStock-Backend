@@ -118,6 +118,10 @@ class ProductoController extends Controller
                 ]);
             }
             
+            if (array_key_exists('kilogramos', $validated)) {
+                $validated['kilo'] = $validated['kilogramos'];
+            }
+
             $producto = $this->productoRepository->create($validated);
             
             DB::commit();
@@ -262,6 +266,10 @@ class ProductoController extends Controller
                 ]);
             }
             
+            if (array_key_exists('kilogramos', $validated)) {
+                $validated['kilo'] = $validated['kilogramos'];
+            }
+
             $actualizado = $this->productoRepository->update($id, $validated);
             
             if (!$actualizado) {
