@@ -2,10 +2,10 @@
 
 namespace App\Http\Requests\Proveedores;
 
-use App\Http\Requests\BaseRequests;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class ProveedoresUpdateRequest extends BaseRequests
+class ProveedoresUpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
