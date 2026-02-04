@@ -54,20 +54,29 @@ Route::prefix('productos')->group(function () {
   });
 
     //Login/Logout
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/logout', [AuthController::class, 'logout']);
 
-    //Registro de Usuario
-    Route::post('/usuarios', [UsuarioController::class, 'store']);
-    Route::get('/check-auth', [AuthController::class, 'checkAuth']);
-    Route::get('/usuarios/{id}/basic-info', [UsuarioController::class, 'show']);
+// 🔹 RUTAS PÚBLICAS DE AUTENTICACIÓN
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/logout', [AuthController::class, 'logout']);
+Route::get('/check-auth', [AuthController::class, 'checkAuth']);
 
-    Route::middleware(['auth'])->group(function () {
-    Route::get('/profile', [UsuarioController::class, 'profile']);
-    Route::put('/profile', [UsuarioController::class, 'updateProfile']);
-    Route::delete('/delete-account', [UsuarioController::class, 'destroy']);
+// 🔹 RUTAS PROTEGIDAS (con middleware de sesión)
+Route::middleware(['auth'])->group(function () {
     
-    // Dashboard
+    // 🔹 RUTAS DE USUARIOS (CRUD completo - protegido)
+    Route::prefix('usuarios')->group(function () {
+        Route::get('/', [UsuarioController::class, 'index'])->name('usuarios.index');
+        Route::post('/', [UsuarioController::class, 'store'])->name('usuarios.store');
+        Route::get('/{id}', [UsuarioController::class, 'show'])->name('usuarios.show');
+        Route::put('/{id}', [UsuarioController::class, 'update']);
+        Route::delete('/{id}', [UsuarioController::class, 'destroy'])->name('usuarios.destroy');
+        //Route::delete('/mi-cuenta/eliminar', [UsuarioController::class, 'deleteMyAccount']);
+         Route::get('/profile/me', [UsuarioController::class, 'profile'])->name('usuarios.profile');
+        Route::put('/profile/update', [UsuarioController::class, 'updateProfile'])->name('usuarios.update-profile');
+        // Rutas de perfil
+    });
+
+    // 🔹 Dashboard
     Route::get('/dashboard', function () {
         return response()->json([
             'success' => true,
@@ -76,7 +85,7 @@ Route::prefix('productos')->group(function () {
                 'user' => auth()->user()->only(['id', 'nombre'])
             ]
         ]);
-    });
+    })->name('dashboard');
 });
 
 Route::get('/login-form', [AuthController::class, 'showLoginForm'])->name('login.form');
