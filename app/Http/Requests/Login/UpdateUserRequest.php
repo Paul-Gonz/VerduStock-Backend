@@ -3,10 +3,9 @@
 namespace App\Http\Requests\Login;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
-class UpdateProfileRequest extends FormRequest
+class UpdateUserRequest extends FormRequest
 {
     public function authorize()
     {
@@ -15,7 +14,7 @@ class UpdateProfileRequest extends FormRequest
 
     public function rules()
     {
-        $userId = $this->route('id') ?? auth()->id();
+        $userId = $this->route('id');
 
         return [
             'nombre' => [
@@ -30,23 +29,11 @@ class UpdateProfileRequest extends FormRequest
         ];
     }
 
-    public function withValidator($validator)
-    {
-        $validator->after(function ($validator) {
-            if ($this->has('current_password')) {
-                $user = auth()->user();
-                if (!Hash::check($this->current_password, $user->password)) {
-                    $validator->errors()->add('current_password', 'La contraseña actual es incorrecta.');
-                }
-            }
-        });
-    }
-
     public function messages()
     {
         return [
             'nombre.unique' => 'El nombre de usuario ya está en uso',
-            'current_password.required' => 'La contraseña actual es requerida',
+            'current_password.required' => 'La contraseña actual del usuario es requerida',
             'new_password.min' => 'La nueva contraseña debe tener al menos 6 caracteres',
             'new_password.confirmed' => 'Las contraseñas no coinciden'
         ];
