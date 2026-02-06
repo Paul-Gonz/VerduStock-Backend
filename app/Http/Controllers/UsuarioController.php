@@ -29,22 +29,18 @@ class UsuarioController extends Controller
         return UsuarioResource::collection($usuarios);
     }
 
-    public function store(RegisterRequest $request)
+public function store(RegisterRequest $request)
 {
     try {
         $usuario = $this->usuarioRepository->create($request->validated());
         
-        // Iniciar sesión automáticamente después del registro
-        Auth::login($usuario);
-        $request->session()->regenerate();
-
         Log::info('Usuario registrado', [
             'user_id' => $usuario->id,
             'nombre' => $usuario->nombre,
-            'ip' => $request->ip()
+            'ip' => $request->ip(),
+            'created_by' => Auth::id() 
         ]);
 
-        // Para API/JSON response
         if ($request->expectsJson() || $request->wantsJson() || $request->is('api/*')) {
             return response()->json([
                 'success' => true,
@@ -57,8 +53,8 @@ class UsuarioController extends Controller
             ], 201);
         }
         
-        // Para web, redirigir después del registro
-        return redirect('/dashboard')->with('success', 'Registro exitoso');
+        return redirect()->route('usuarios.index') // o la ruta que prefieras
+                        ->with('success', 'Usuario creado exitosamente');
         
     } catch (\Exception $e) {
         Log::error('Error al registrar usuario: ' . $e->getMessage(), [
