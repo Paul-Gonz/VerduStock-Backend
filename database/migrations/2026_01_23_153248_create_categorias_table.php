@@ -13,6 +13,7 @@ return new class extends Migration
             $table->bigIncrements('id');  // bigserial
             $table->string('nombre', 100); // character varying(100)
             $table->text('detalle')->nullable(); // text
+            $table->string('emoji', 16)->nullable(); // character varying(16)
             $table->timestampsTz(); // timestamp with time zone (created_at, updated_at)
         });
     }
