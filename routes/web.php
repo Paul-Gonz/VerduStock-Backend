@@ -19,13 +19,6 @@ Route::get('/api-test', function () {
     ]);
 });
 
-Route::prefix('proveedores')->group(function () {
-    Route::get('/', [ProveedoresController::class, 'index']);
-    Route::post('/', [ProveedoresController::class, 'store']);
-    Route::get('/{id}', [ProveedoresController::class, 'show']);
-    Route::put('/{id}', [ProveedoresController::class, 'update']);
-});
-
 // 🔹 RUTAS DE CATEGORÍAS (las que ya tienes)
 Route::prefix('categorias')->group(function () {
     Route::get('/', [CategoriaController::class, 'index']);
@@ -75,6 +68,14 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/profile/update', [UsuarioController::class, 'updateProfile'])->name('usuarios.update-profile');
         // Rutas de perfil
     });
+
+    Route::prefix('proveedores')->group(function () {
+    Route::get('/', [ProveedoresController::class, 'index']);
+    Route::post('/', [ProveedoresController::class, 'store']);
+    Route::get('/{id}', [ProveedoresController::class, 'show']);
+    Route::put('/{id}', [ProveedoresController::class, 'update']);
+});
+
 
     // 🔹 Dashboard
     Route::get('/dashboard', function () {
