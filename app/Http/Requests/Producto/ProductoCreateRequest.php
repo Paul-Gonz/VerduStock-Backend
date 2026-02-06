@@ -14,24 +14,23 @@ class ProductoCreateRequest extends FormRequest
     }
 
     public function rules(): array
-    {
-        return [
-            'nombre' => [
-                'required',
-                'string',
-                'max:100',
-                Rule::unique('productos')->ignore($this->route('producto'))
-            ],
-            'categoria_id' => 'required|exists:categorias,id',
-            'kilogramos' => 'required|numeric|min:0.001|decimal:0,3',
-            'precio_compra' => 'required|numeric|min:0|decimal:0,2',
-            'precio_venta_kg' => 'required|numeric|min:0|decimal:0,2',
-            'proveedor_id' => 'required|exists:proveedores,id',
-            'desperdicio' => 'nullable|numeric|min:0|decimal:0,3|lt:kilogramos',
-            'usuario_id' => 'required|exists:usuarios,id',
-            'detalle' => 'nullable|string|max:500'
-        ];
-    }
+{
+    return [
+        'nombre' => [
+            'required', 'string', 'max:100',
+            Rule::unique('productos')->ignore($this->route('producto'))
+        ],
+        'categoria_id' => 'required|exists:categorias,id',
+        // Cambiamos decimal por numeric para que acepte tanto 10 como 10.555
+        'kilogramos' => 'required|numeric|min:0.001', 
+        'precio_compra' => 'required|numeric|min:0',
+        'precio_venta_kg' => 'required|numeric|min:0',
+        'proveedor_id' => 'required|exists:proveedores,id',
+        'desperdicio' => 'nullable|numeric|min:0|lt:kilogramos',
+        'usuario_id' => 'required|exists:usuarios,id',
+        'detalle' => 'nullable|string|max:500'
+    ];
+}
 
     public function messages(): array
     {
