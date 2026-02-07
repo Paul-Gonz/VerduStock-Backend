@@ -18,6 +18,7 @@ class ProductoResource extends JsonResource
             'nombre' => $this->nombre,
             'categoria_id' => $this->categoria_id,
             'categoria_nombre' => $this->categoria->nombre ?? null,
+            'categoria_emoji' => $this->categoria->emoji ?? null,
             'kilogramos' => (float) $this->kilogramos,
             'detalle' => $this->detalle,
             'precio_compra' => (float) $this->precio_compra,

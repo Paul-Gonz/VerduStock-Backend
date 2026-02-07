@@ -93,7 +93,6 @@ class ProductoController extends Controller
                     'precio_venta_kg' => 'required|numeric|min:0|decimal:0,2',
                     'proveedor_id' => 'required|exists:proveedores,id',
                     'desperdicio' => 'nullable|numeric|min:0|decimal:0,3',
-                    'usuario_id' => 'required|exists:usuarios,id',
                     'detalle' => 'nullable|string|max:500'
                 ]);
                 
@@ -113,10 +112,11 @@ class ProductoController extends Controller
                     'precio_venta_kg' => 'required|numeric|min:0|decimal:0,2',
                     'proveedor_id' => 'required|exists:proveedores,id',
                     'desperdicio' => 'nullable|numeric|min:0|decimal:0,3|lt:kilogramos',
-                    'usuario_id' => 'required|exists:usuarios,id',
                     'detalle' => 'nullable|string|max:500'
                 ]);
             }
+
+            $validated['usuario_id'] = auth()->id();
             
             if (array_key_exists('kilogramos', $validated)) {
                 $validated['kilo'] = $validated['kilogramos'];
@@ -240,7 +240,6 @@ class ProductoController extends Controller
                     'precio_venta_kg' => 'sometimes|required|numeric|min:0|decimal:0,2',
                     'proveedor_id' => 'sometimes|required|exists:proveedores,id',
                     'desperdicio' => 'nullable|numeric|min:0|decimal:0,3',
-                    'usuario_id' => 'sometimes|required|exists:usuarios,id',
                     'detalle' => 'nullable|string|max:500'
                 ]);
                 
@@ -261,7 +260,6 @@ class ProductoController extends Controller
                     'precio_venta_kg' => 'sometimes|required|numeric|min:0|decimal:0,2',
                     'proveedor_id' => 'sometimes|required|exists:proveedores,id',
                     'desperdicio' => 'nullable|numeric|min:0|decimal:0,3|lt:kilogramos',
-                    'usuario_id' => 'sometimes|required|exists:usuarios,id',
                     'detalle' => 'nullable|string|max:500'
                 ]);
             }

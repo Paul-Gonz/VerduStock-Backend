@@ -27,7 +27,6 @@ class ProductoCreateRequest extends FormRequest
         'precio_venta_kg' => 'required|numeric|min:0',
         'proveedor_id' => 'required|exists:proveedores,id',
         'desperdicio' => 'nullable|numeric|min:0|lt:kilogramos',
-        'usuario_id' => 'required|exists:usuarios,id',
         'detalle' => 'nullable|string|max:500'
     ];
 }
@@ -44,7 +43,6 @@ class ProductoCreateRequest extends FormRequest
             'precio_venta_kg.required' => 'El precio de venta por kg es obligatorio',
             'proveedor_id.required' => 'El proveedor es obligatorio',
             'desperdicio.lt' => 'El desperdicio no puede ser mayor o igual a los kilogramos totales',
-            'usuario_id.required' => 'El usuario es obligatorio',
             'detalle.max' => 'El detalle no puede exceder los 500 caracteres'
         ];
     }
@@ -59,7 +57,6 @@ class ProductoCreateRequest extends FormRequest
             'precio_venta_kg' => 'precio de venta por kg',
             'proveedor_id' => 'proveedor',
             'desperdicio' => 'desperdicio',
-            'usuario_id' => 'usuario',
             'detalle' => 'detalle'
         ];
     }
