@@ -6,6 +6,8 @@ use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Reportes\ReporteController;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -88,12 +90,26 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{id}', [ProductoController::class, 'update'])->name('productos.update');
         Route::delete('/{id}', [ProductoController::class, 'destroy'])->name('productos.destroy');
         
-        // Rutas adicionales
+        /* Rutas adicionales */
         Route::get('/reporte/estadisticas', [ProductoController::class, 'reporte'])->name('productos.reporte');
         Route::get('/categoria/{categoriaId}', [ProductoController::class, 'porCategoria'])->name('productos.por-categoria');
         Route::get('/alto-desperdicio', [ProductoController::class, 'altoDesperdicio'])->name('productos.alto-desperdicio');
-        
+       
+
+
     });
+
+   Route::prefix('reportes')->group(function () {
+    // Vistas previas (JSON)
+    Route::get('/preview-inventario', [ReporteController::class, 'previewInventarioCompleto']);
+    Route::get('/preview-rentabilidad', [ReporteController::class, 'previewAnalisisRentabilidad']);
+    
+    // Generación de PDFs
+    Route::get('/inventario-completo', [ReporteController::class, 'inventarioCompleto']);
+    Route::get('/stock-bajo', [ReporteController::class, 'stockBajo']);
+    Route::get('/reporte-desperdicios', [ReporteController::class, 'reporteDesperdicios']);
+    Route::get('/analisis-rentabilidad', [ReporteController::class, 'analisisRentabilidad']);
+});
 
 });
 
