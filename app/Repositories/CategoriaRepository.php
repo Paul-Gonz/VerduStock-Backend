@@ -45,16 +45,45 @@ class CategoriaRepository
     public function delete(int $id): bool
     {
         $categoria = $this->find($id);
+        // Al usar SoftDeletes en el modelo, esto solo llenará 'deleted_at'
         return $categoria ? $categoria->delete() : false;
     }
 
-    // Método específico para buscar por nombre (varchar(100))
+    // --- NUEVOS MÉTODOS PARA SOFT DELETE ---
+
+    /**
+     * Obtener solo los registros eliminados (Papelera)
+     */
+    public function onlyTrashed(): Collection
+    {
+        return $this->model->onlyTrashed()->get();
+    }
+
+    /**
+     * Restaurar una categoría eliminada
+     */
+    public function restore(int $id): bool
+    {
+        $categoria = $this->model->withTrashed()->find($id);
+        return $categoria ? $categoria->restore() : false;
+    }
+
+    /**
+     * Eliminar permanentemente de la base de datos
+     */
+    public function forceDelete(int $id): bool
+    {
+        $categoria = $this->model->withTrashed()->find($id);
+        return $categoria ? $categoria->forceDelete() : false;
+    }
+
+    // --- MÉTODOS DE BÚSQUEDA ---
+
     public function findByNombre(string $nombre): ?Categoria
     {
         return $this->model->where('nombre', $nombre)->first();
     }
 
-    // Método para verificar si existe por nombre
     public function existsByNombre(string $nombre, ?int $exceptId = null): bool
     {
         $query = $this->model->where('nombre', $nombre);

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\support\Facades\Auth;
+use Illuminate\Support\Facades\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProveedoresResource;
@@ -23,8 +23,21 @@ class ProveedoresController extends Controller
 
     public function index()
     {
+        // El repositorio filtrará automáticamente los proveedores activos
         $proveedores = $this->proveedorRepository->all();
         return ProveedoresResource::collection($proveedores);
+    }
+
+    /**
+     * NUEVO: Listar proveedores en la papelera
+     */
+    public function trashed(): JsonResponse
+    {
+        $proveedores = $this->proveedorRepository->onlyTrashed();
+        return response()->json([
+            'success' => true,
+            'data' => ProveedoresResource::collection($proveedores)
+        ]);
     }
 
     public function store(ProveedoresCreateRequest $request)
@@ -61,8 +74,63 @@ class ProveedoresController extends Controller
         return new ProveedoresResource($updatedProveedor);
     }
 
-    public function destroy($id)
+    /**
+     * Soft Delete: Mover a la papelera
+     */
+    public function destroy($id): JsonResponse
     {
-        // Implementar lógica de eliminación si es necesaria
+        $deleted = $this->proveedorRepository->delete($id);
+        
+        if (!$deleted) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Proveedor no encontrado o ya eliminado'
+            ], 404);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Proveedor movido a la papelera exitosamente'
+        ]);
+    }
+
+    /**
+     * NUEVO: Restaurar un proveedor
+     */
+    public function restore($id): JsonResponse
+    {
+        $restored = $this->proveedorRepository->restore($id);
+        
+        if (!$restored) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo encontrar el proveedor en la papelera'
+            ], 404);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Proveedor restaurado exitosamente'
+        ]);
+    }
+
+    /**
+     * NUEVO: Eliminación permanente
+     */
+    public function forceDelete($id): JsonResponse
+    {
+        $deleted = $this->proveedorRepository->forceDelete($id);
+        
+        if (!$deleted) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al intentar eliminar permanentemente el proveedor'
+            ], 404);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Proveedor eliminado definitivamente del sistema'
+        ]);
     }
 }

@@ -15,16 +15,17 @@ class CategoriaResource extends JsonResource
             'nombre' => $this->nombre,
             'detalle' => $this->detalle,
             'emoji' => $this->emoji,
-            'created_at' => $this->created_at->toIso8601String(), // Formato ISO
-            'updated_at' => $this->updated_at->toIso8601String(),
             
-            // Si quieres formato español:
-            // 'created_at' => $this->created_at->format('d/m/Y H:i:s'),
-            // 'updated_at' => $this->updated_at->format('d/m/Y H:i:s'),
+            // Estado del Soft Delete para el Frontend
+            'is_deleted' => $this->trashed(), 
+            'deleted_at' => $this->deleted_at ? $this->deleted_at->toIso8601String() : null,
+
+            // Formatos ISO para Nuxt/JS
+            'created_at' => $this->created_at ? $this->created_at->toIso8601String() : null,
+            'updated_at' => $this->updated_at ? $this->updated_at->toIso8601String() : null,
             
-            // Relaciones futuras (cuando las agregues):
-            // 'productos_count' => $this->whenCounted('productos'),
-            // 'productos' => ProductoResource::collection($this->whenLoaded('productos'))
+            // Relaciones futuras seguras:
+            'productos_count' => $this->whenCounted('productos'),
         ];
     }
 }

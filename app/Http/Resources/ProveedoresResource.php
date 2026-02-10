@@ -15,9 +15,14 @@ class ProveedoresResource extends JsonResource {
             'telefono' => $this->telefono,
             'direccion' => $this->direccion,
             'detalle' => $this->detalle,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            
+            // Estado del Soft Delete
+            'is_deleted' => $this->trashed(),
+            'deleted_at' => $this->deleted_at ? $this->deleted_at->toIso8601String() : null,
+
+            // Formateo de fechas consistente
+            'created_at' => $this->created_at ? $this->created_at->toIso8601String() : null,
+            'updated_at' => $this->updated_at ? $this->updated_at->toIso8601String() : null,
         ];
     }
-
 }

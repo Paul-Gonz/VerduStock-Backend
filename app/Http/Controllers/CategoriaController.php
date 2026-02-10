@@ -20,6 +20,7 @@ class CategoriaController extends Controller
 
     public function index(): JsonResponse
     {
+        // El repositorio ya filtrará las categorías eliminadas automáticamente
         $categorias = $this->categoriaRepository->paginate();
         
         return response()->json([
@@ -31,6 +32,17 @@ class CategoriaController extends Controller
                 'current_page' => $categorias->currentPage(),
                 'last_page' => $categorias->lastPage()
             ]
+        ]);
+    }
+
+    // --- NUEVO: Listar categorías eliminadas (Papelera) ---
+    public function trashed(): JsonResponse
+    {
+        $categorias = $this->categoriaRepository->onlyTrashed();
+        
+        return response()->json([
+            'success' => true,
+            'data' => CategoriaResource::collection($categorias)
         ]);
     }
 
@@ -83,6 +95,7 @@ class CategoriaController extends Controller
 
     public function destroy(int $id): JsonResponse
     {
+        // Al usar SoftDeletes en el modelo, este delete() solo llenará deleted_at
         $deleted = $this->categoriaRepository->delete($id);
         
         if (!$deleted) {
@@ -94,7 +107,43 @@ class CategoriaController extends Controller
         
         return response()->json([
             'success' => true,
-            'message' => 'Categoría eliminada exitosamente.'
+            'message' => 'Categoría movida a la papelera exitosamente.'
+        ]);
+    }
+
+    // --- NUEVO: Restaurar una categoría ---
+    public function restore(int $id): JsonResponse
+    {
+        $restored = $this->categoriaRepository->restore($id);
+        
+        if (!$restored) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo encontrar la categoría en la papelera.'
+            ], 404);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Categoría restaurada exitosamente.'
+        ]);
+    }
+
+    // --- NUEVO: Borrado físico/permanente ---
+    public function forceDelete(int $id): JsonResponse
+    {
+        $deleted = $this->categoriaRepository->forceDelete($id);
+        
+        if (!$deleted) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Categoría no encontrada.'
+            ], 404);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Categoría eliminada permanentemente del sistema.'
         ]);
     }
 }

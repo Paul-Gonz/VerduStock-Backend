@@ -17,7 +17,7 @@ class ProductoRepository
     }
 
     /**
-     * Obtener todos los productos
+     * Obtener todos los productos (Activos)
      */
     public function all(array $with = []): Collection
     {
@@ -25,58 +25,72 @@ class ProductoRepository
     }
 
     /**
-     * Paginar productos
+     * Paginar productos (Activos)
      */
     public function paginate(int $perPage = 15, array $with = []): LengthAwarePaginator
     {
         return $this->model->with($this->getDefaultRelations($with))->paginate($perPage);
     }
 
+    // --- NUEVOS MÉTODOS PARA SOFT DELETE ---
+
     /**
-     * Buscar producto por ID
+     * Obtener productos de la papelera
      */
+    public function onlyTrashed(): Collection
+    {
+        return $this->model->onlyTrashed()
+            ->with($this->getDefaultRelations())
+            ->get();
+    }
+
+    /**
+     * Restaurar un producto eliminado
+     */
+    public function restore(int $id): bool
+    {
+        $producto = $this->model->withTrashed()->find($id);
+        return $producto ? $producto->restore() : false;
+    }
+
+    /**
+     * Eliminar permanentemente de la base de datos
+     */
+    public function forceDelete(int $id): bool
+    {
+        $producto = $this->model->withTrashed()->find($id);
+        return $producto ? $producto->forceDelete() : false;
+    }
+
+    // --- FIN MÉTODOS SOFT DELETE ---
+
     public function find(int $id, array $with = []): ?Producto
     {
         return $this->model->with($this->getDefaultRelations($with))->find($id);
     }
 
-    /**
-     * Buscar producto o fallar
-     */
     public function findOrFail(int $id, array $with = []): Producto
     {
         return $this->model->with($this->getDefaultRelations($with))->findOrFail($id);
     }
 
-    /**
-     * Crear nuevo producto
-     */
     public function create(array $data): Producto
     {
         return $this->model->create($data);
     }
 
-    /**
-     * Actualizar producto
-     */
     public function update(int $id, array $data): bool
     {
         $producto = $this->find($id);
         return $producto ? $producto->update($data) : false;
     }
 
-    /**
-     * Eliminar producto
-     */
     public function delete(int $id): bool
     {
         $producto = $this->find($id);
         return $producto ? $producto->delete() : false;
     }
 
-    /**
-     * Buscar productos con filtros
-     */
     public function search(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         $query = $this->model->with($this->getDefaultRelations());
@@ -96,27 +110,15 @@ class ProductoRepository
             });
         }
 
-        // Filtros
-        if (!empty($filters['categoria_id'])) {
-            $query->where('categoria_id', $filters['categoria_id']);
-        }
-
-        if (!empty($filters['proveedor_id'])) {
-            $query->where('proveedor_id', $filters['proveedor_id']);
-        }
-
-        if (!empty($filters['usuario_id'])) {
-            $query->where('usuario_id', $filters['usuario_id']);
-        }
+        // Filtros (categoria, proveedor, usuario, fechas...)
+        if (!empty($filters['categoria_id'])) $query->where('categoria_id', $filters['categoria_id']);
+        if (!empty($filters['proveedor_id'])) $query->where('proveedor_id', $filters['proveedor_id']);
+        if (!empty($filters['usuario_id'])) $query->where('usuario_id', $filters['usuario_id']);
 
         if (!empty($filters['fecha_inicio']) && !empty($filters['fecha_fin'])) {
-            $query->whereBetween('created_at', [
-                $filters['fecha_inicio'],
-                $filters['fecha_fin']
-            ]);
+            $query->whereBetween('created_at', [$filters['fecha_inicio'], $filters['fecha_fin']]);
         }
 
-        // Ordenamiento
         $ordenCampo = $filters['orden_campo'] ?? 'created_at';
         $ordenDireccion = $filters['orden_direccion'] ?? 'desc';
         $query->orderBy($ordenCampo, $ordenDireccion);
@@ -124,27 +126,15 @@ class ProductoRepository
         return $query->paginate($perPage);
     }
 
-    /**
-     * Obtener estadísticas
-     */
     public function getEstadisticas(array $filters = []): array
     {
-        $query = $this->model;
+        $query = $this->model->query(); // Inicia query limpia (solo activos)
 
-        // Aplicar filtros
-        if (!empty($filters['categoria_id'])) {
-            $query->where('categoria_id', $filters['categoria_id']);
-        }
-
-        if (!empty($filters['proveedor_id'])) {
-            $query->where('proveedor_id', $filters['proveedor_id']);
-        }
-
+        if (!empty($filters['categoria_id'])) $query->where('categoria_id', $filters['categoria_id']);
+        if (!empty($filters['proveedor_id'])) $query->where('proveedor_id', $filters['proveedor_id']);
+        
         if (!empty($filters['fecha_inicio']) && !empty($filters['fecha_fin'])) {
-            $query->whereBetween('created_at', [
-                $filters['fecha_inicio'],
-                $filters['fecha_fin']
-            ]);
+            $query->whereBetween('created_at', [$filters['fecha_inicio'], $filters['fecha_fin']]);
         }
 
         $productos = $query->get();
@@ -161,43 +151,27 @@ class ProductoRepository
         ];
     }
 
-    /**
-     * Obtener productos por categoría
-     */
     public function getPorCategoria(int $categoriaId): Collection
     {
         return $this->model->where('categoria_id', $categoriaId)
-            ->with(['categoria', 'proveedor'])
+            ->with($this->getDefaultRelations())
             ->get();
     }
 
-    /**
-     * Verificar si existe producto con nombre
-     */
     public function existsByNombre(string $nombre, ?int $exceptId = null): bool
     {
         $query = $this->model->where('nombre', $nombre);
-        
-        if ($exceptId) {
-            $query->where('id', '!=', $exceptId);
-        }
-        
+        if ($exceptId) $query->where('id', '!=', $exceptId);
         return $query->exists();
     }
 
-    /**
-     * Obtener productos con alto desperdicio
-     */
     public function getConAltoDesperdicio(float $porcentajeUmbral = 0.3): Collection
     {
         return $this->model->whereRaw('desperdicio / kilogramos > ?', [$porcentajeUmbral])
-            ->with(['categoria', 'proveedor'])
+            ->with($this->getDefaultRelations())
             ->get();
     }
 
-    /**
-     * Obtener relaciones por defecto
-     */
     private function getDefaultRelations(array $additional = []): array
     {
         $default = ['categoria', 'proveedor', 'usuario'];

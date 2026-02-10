@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class proveedores extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'proveedores';
     public $timestamps = true;
 
@@ -19,6 +22,7 @@ class proveedores extends Model
     protected $dates = [
         'created_at',
         'updated_at',
+        'deleted_at'
     ];
 
     protected $casts = [
