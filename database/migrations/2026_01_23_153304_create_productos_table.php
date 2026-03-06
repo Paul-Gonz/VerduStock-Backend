@@ -15,23 +15,16 @@ return new class extends Migration
             $table->foreignId('categoria_id')
                   ->constrained('categorias')
                   ->onDelete('restrict');
-            $table->decimal('kilogramos', 8, 3);
+            $table->decimal('stock_actual', 8, 3);
             $table->text('detalle')->nullable();
-            $table->decimal('precio_compra', 10, 2);
-            $table->decimal('precio_venta_kg', 10, 2);
-            $table->foreignId('proveedor_id')
-                  ->constrained('proveedores')
-                  ->onDelete('restrict');
-            $table->decimal('desperdicio', 8, 3)->default(0);
             $table->foreignId('usuario_id')
                   ->constrained('usuarios')
                   ->onDelete('restrict');
+            $table->decimal('stock_minimo', 8, 3)->default(0);
             $table->timestamps();
             
             // Índices
             $table->index('nombre');
-            $table->index('categoria_id');
-            $table->index('proveedor_id');
             $table->index('usuario_id');
             $table->index('created_at');
         });
