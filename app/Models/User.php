@@ -5,19 +5,21 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // Asegúrate de tener esto para la API
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
-     * Adaptamos los campos a tu lógica de VerduStock
+     * IMPORTANTE: Apuntamos a la tabla real en Supabase
      */
+    protected $table = 'usuarios';
+
     protected $fillable = [
-        'nombre',    // Cambiado de 'name'
+        'nombre',
         'password',
-        'rol',       // Imagino que tienes un rol
+        'rol',
         'estado',
     ];
 
@@ -30,15 +32,32 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
         ];
     }
 
     /**
-     * IMPORTANTE: Esto le dice a Laravel que use 'nombre' 
-     * en lugar de 'email' para la autenticación.
+     * Le dice a Laravel que el identificador es 'nombre' y no 'email'
      */
     public function getAuthIdentifierName()
     {
         return 'nombre';
+    }
+
+    /**
+     * Mantenemos la relación con productos que tenías en el otro modelo
+     */
+    public function productos()
+    {
+        return $this->hasMany(Producto::class, 'usuario_id');
+    }
+
+    /**
+     * Mutador para asegurar que el nombre siempre vaya limpio
+     */
+    public function setNombreAttribute($value)
+    {
+        $this->attributes['nombre'] = trim($value);
     }
 }
