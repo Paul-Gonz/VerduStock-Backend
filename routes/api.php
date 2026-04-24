@@ -12,6 +12,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Ruta de prueba pública
+Route::get('/public-test', function () {
+    return response()->json(['status' => 'API Online y Pública']);
+});
+
 // 🔹 AUTENTICACIÓN
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout']);
