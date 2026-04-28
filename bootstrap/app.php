@@ -12,11 +12,20 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Quitamos statefulApi() y StartSession porque el Token viaja en el Header, no en la Cookie.
-        
+        // Configuración de CORS integrada en Laravel 12
         $middleware->validateCsrfTokens(except: [
-            'api/*', // Con Tokens, el CSRF ya no es necesario para la API
+            'login',
+            'logout',
+            'api/*',
         ]);
+
+        $middleware->statefulApi(); // Si usas Sanctum
+
+        // Configura el CORS aquí directamente
+        $middleware->trustProxies(at: '*');
+        
+        // Esta es la parte que te está fallando:
+        $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
