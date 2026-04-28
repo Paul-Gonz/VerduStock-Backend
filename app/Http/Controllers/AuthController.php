@@ -17,123 +17,82 @@ class AuthController extends Controller
         
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
-            
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Demasiados intentos. Intente nuevamente en ' . $seconds . ' segundos.'
-                ], 429);
-            }
-            
-            throw ValidationException::withMessages([
-                'nombre' => "Demasiados intentos. Intente nuevamente en {$seconds} segundos."
-            ]);
+            return response()->json([
+                'success' => false,
+                'message' => "Demasiados intentos. Intente en {$seconds} segundos."
+            ], 429);
         }
 
-        // Credenciales simplificadas
         $credentials = $request->only('nombre', 'password');
         
-        // Intento de autenticación estándar
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        // Intentamos autenticar
+        if (Auth::attempt($credentials)) {
             RateLimiter::clear($throttleKey);
             
-            $request->session()->regenerate();
             $user = Auth::user();
-            
-            Log::info('Login exitoso', [
+
+            // Creamos el token de Sanctum
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            Log::info('Login exitoso (Token)', [
                 'user_id' => $user->id,
-                'nombre' => $user->nombre,
                 'ip' => $request->ip()
             ]);
 
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Login exitoso',
-                    'data' => [
-                        'user' => [
-                            'id' => $user->id,
-                            'nombre' => $user->nombre
-                        ]
+            return response()->json([
+                'success' => true,
+                'message' => 'Login exitoso',
+                'token' => $token, // Enviamos el token al frontend
+                'data' => [
+                    'user' => [
+                        'id' => $user->id,
+                        'nombre' => $user->nombre
                     ]
-                ]);
-            }
-
-            return redirect()->intended('/dashboard');
+                ]
+            ]);
         }
 
         RateLimiter::hit($throttleKey, 60);
         
-        Log::warning('Login fallido', [
-            'nombre' => $request->nombre,
-            'ip' => $request->ip()
-        ]);
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Credenciales incorrectas'
-            ], 401);
-        }
-
-        throw ValidationException::withMessages([
-            'nombre' => 'Credenciales incorrectas'
-        ]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Credenciales incorrectas'
+        ], 401);
     }
 
     public function logout(Request $request)
     {
-        $user = Auth::user();
+        $user = $request->user(); // Obtenemos el usuario por el token
         
         if ($user) {
-            Log::info('Logout', [
+            // Eliminamos el token actual para cerrar la sesión
+            $user->currentAccessToken()->delete();
+
+            Log::info('Logout (Token)', [
                 'user_id' => $user->id,
                 'ip' => $request->ip()
             ]);
         }
         
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Sesión cerrada exitosamente'
-            ]);
-        }
-
-        return redirect('/')->with('info', 'Sesión cerrada exitosamente');
+        return response()->json([
+            'success' => true,
+            'message' => 'Token revocado exitosamente'
+        ]);
     }
 
     public function checkAuth(Request $request)
     {
-        $user = Auth::user();
-        $isAuthenticated = Auth::check();
+        // Si el middleware 'auth:sanctum' deja pasar la petición, 
+        // el usuario ya está autenticado.
+        $user = $request->user();
         
-        $response = [
+        return response()->json([
             'success' => true,
-            'authenticated' => $isAuthenticated
-        ];
-        
-        if ($user) {
-            $response['user'] = [
+            'authenticated' => true,
+            'user' => [
                 'id' => $user->id,
                 'nombre' => $user->nombre
-            ];
-        }
-
-        return response()->json($response);
-    }
-
-    // WEB Methods
-    public function showLoginForm()
-    {
-        return view('auth.login');
-    }
-
-    public function showRegisterForm()
-    {
-        return view('auth.register');
+            ]
+        ]);
     }
 }
