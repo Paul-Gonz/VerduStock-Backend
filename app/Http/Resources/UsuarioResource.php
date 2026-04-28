@@ -11,8 +11,8 @@ class UsuarioResource extends JsonResource
         return [
             'id' => $this->id,
             'nombre' => $this->nombre,
-            'created_at' => $this->created_at->toISOString(),
-            'updated_at' => $this->updated_at->toISOString(),
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
             'productos_count' => $this->whenCounted('productos'),
             'productos' => ProductoResource::collection($this->whenLoaded('productos'))
         ];

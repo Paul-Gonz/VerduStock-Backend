@@ -29,49 +29,49 @@ class UsuarioController extends Controller
         return UsuarioResource::collection($usuarios);
     }
 
-public function store(RegisterRequest $request)
-{
-    try {
-        $usuario = $this->usuarioRepository->create($request->validated());
-        
-        Log::info('Usuario registrado', [
-            'user_id' => $usuario->id,
-            'nombre' => $usuario->nombre,
-            'ip' => $request->ip(),
-            'created_by' => Auth::id() 
-        ]);
+    public function store(RegisterRequest $request)
+    {
+        try {
+            $usuario = $this->usuarioRepository->create($request->validated());
+            
+            Log::info('Usuario registrado', [
+                'user_id' => $usuario->id,
+                'nombre' => $usuario->nombre,
+                'ip' => $request->ip(),
+                'created_by' => Auth::id() 
+            ]);
 
-        if ($request->expectsJson() || $request->wantsJson() || $request->is('api/*')) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Usuario registrado exitosamente',
-                'data' => [
-                    'id' => $usuario->id,
-                    'nombre' => $usuario->nombre,
-                    'created_at' => $usuario->created_at
-                ]
-            ], 201);
+            if ($request->expectsJson() || $request->wantsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Usuario registrado exitosamente',
+                    'data' => [
+                        'id' => $usuario->id,
+                        'nombre' => $usuario->nombre,
+                        'created_at' => $usuario->created_at
+                    ]
+                ], 201);
+            }
+            
+            return redirect()->route('usuarios.index') // o la ruta que prefieras
+                            ->with('success', 'Usuario creado exitosamente');
+            
+        } catch (\Exception $e) {
+            Log::error('Error al registrar usuario: ' . $e->getMessage(), [
+                'request' => $request->all(),
+                'ip' => $request->ip()
+            ]);
+            
+            if ($request->expectsJson() || $request->wantsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al registrar usuario: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return back()->with('error', 'Error al registrar usuario');
         }
-        
-        return redirect()->route('usuarios.index') // o la ruta que prefieras
-                        ->with('success', 'Usuario creado exitosamente');
-        
-    } catch (\Exception $e) {
-        Log::error('Error al registrar usuario: ' . $e->getMessage(), [
-            'request' => $request->all(),
-            'ip' => $request->ip()
-        ]);
-        
-        if ($request->expectsJson() || $request->wantsJson() || $request->is('api/*')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al registrar usuario: ' . $e->getMessage()
-            ], 500);
-        }
-        
-        return back()->with('error', 'Error al registrar usuario');
     }
-}
 
     public function show($id)
     {
@@ -87,69 +87,69 @@ public function store(RegisterRequest $request)
         return new UsuarioResource($usuario);
     }
 
-public function update(UpdateUserRequest $request, $id)
-{
-    $usuario = $this->usuarioRepository->find($id);
-    
-    if (!$usuario) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Usuario no encontrado'
-        ], 404);
-    }
-
-    // DEBUG: Verifica la contraseña que llega
-    Log::debug('Contraseña recibida para validación', [
-        'usuario_id' => $usuario->id,
-        'password_plain' => $request->current_password,
-        'password_hash_en_db' => $usuario->password
-    ]);
-
-    // Verificar la contraseña del usuario que se va a editar
-    if (!Hash::check($request->current_password, $usuario->password)) {
-        Log::error('Error en validación de contraseña', [
-            'usuario_id' => $usuario->id,
-            'hash_check_result' => Hash::check($request->current_password, $usuario->password)
-        ]);
+    public function update(UpdateUserRequest $request, $id)
+    {
+        $usuario = $this->usuarioRepository->find($id);
         
+        if (!$usuario) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no encontrado'
+            ], 404);
+        }
+
+        // DEBUG: Verifica la contraseña que llega
+        Log::debug('Contraseña recibida para validación', [
+            'usuario_id' => $usuario->id,
+            'password_plain' => $request->current_password,
+            'password_hash_en_db' => $usuario->password
+        ]);
+
+        // Verificar la contraseña del usuario que se va a editar
+        if (!Hash::check($request->current_password, $usuario->password)) {
+            Log::error('Error en validación de contraseña', [
+                'usuario_id' => $usuario->id,
+                'hash_check_result' => Hash::check($request->current_password, $usuario->password)
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'La contraseña del usuario es incorrecta'
+            ], 422);
+        }
+
+        $data = $request->validated();
+        
+        // Remove current_password from update data
+        unset($data['current_password']);
+        
+        if (isset($data['new_password'])) {
+            // NO encriptes aquí, deja que el Repository lo haga
+            $data['password'] = $data['new_password']; // Pasa el texto plano
+            unset($data['new_password']);
+        }
+
+        $usuarioActualizado = $this->usuarioRepository->update($id, $data);
+        
+        if (!$usuarioActualizado) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar usuario'
+            ], 500);
+        }
+
+        Log::info('Usuario actualizado por administrador', [
+            'user_id' => $usuario->id,
+            'updated_by' => Auth::id(),
+            'ip' => $request->ip()
+        ]);
+
         return response()->json([
-            'success' => false,
-            'message' => 'La contraseña del usuario es incorrecta'
-        ], 422);
+            'success' => true,
+            'message' => 'Usuario actualizado exitosamente.',
+            'data' => new UsuarioResource($usuarioActualizado)
+        ]);
     }
-
-    $data = $request->validated();
-    
-    // Remove current_password from update data
-    unset($data['current_password']);
-    
-    if (isset($data['new_password'])) {
-        // NO encriptes aquí, deja que el Repository lo haga
-        $data['password'] = $data['new_password']; // Pasa el texto plano
-        unset($data['new_password']);
-    }
-
-    $usuarioActualizado = $this->usuarioRepository->update($id, $data);
-    
-    if (!$usuarioActualizado) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Error al actualizar usuario'
-        ], 500);
-    }
-
-    Log::info('Usuario actualizado por administrador', [
-        'user_id' => $usuario->id,
-        'updated_by' => Auth::id(),
-        'ip' => $request->ip()
-    ]);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Usuario actualizado exitosamente.',
-        'data' => new UsuarioResource($usuarioActualizado)
-    ]);
-}
 
     public function profile()
     {
@@ -157,43 +157,43 @@ public function update(UpdateUserRequest $request, $id)
         return new UsuarioResource($usuario);
     }
 
-public function updateProfile(UpdateProfileRequest $request)
-{
-    $data = $request->validated();
-    $userId = Auth::id();
-    
-    // Verificar la contraseña actual del usuario logueado
-    $user = Auth::user();
-    if (!Hash::check($request->current_password, $user->password)) {
+    public function updateProfile(UpdateProfileRequest $request)
+    {
+        $data = $request->validated();
+        $userId = Auth::id();
+        
+        // Verificar la contraseña actual del usuario logueado
+        $user = Auth::user();
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tu contraseña actual es incorrecta'
+            ], 422);
+        }
+        
+        unset($data['current_password']);
+        
+        if (isset($data['new_password'])) {
+            $data['password'] = bcrypt($data['new_password']);
+            unset($data['new_password']);
+        }
+
+        $usuario = $this->usuarioRepository->update($userId, $data);
+
+        Log::info('Perfil actualizado por usuario', [
+            'user_id' => $userId,
+            'ip' => $request->ip()
+        ]);
+
         return response()->json([
-            'success' => false,
-            'message' => 'Tu contraseña actual es incorrecta'
-        ], 422);
+            'success' => true,
+            'message' => 'Perfil actualizado exitosamente.',
+            'data' => new UsuarioResource($usuario)
+        ]);
     }
-    
-    unset($data['current_password']);
-    
-    if (isset($data['new_password'])) {
-        $data['password'] = bcrypt($data['new_password']);
-        unset($data['new_password']);
-    }
-
-    $usuario = $this->usuarioRepository->update($userId, $data);
-
-    Log::info('Perfil actualizado por usuario', [
-        'user_id' => $userId,
-        'ip' => $request->ip()
-    ]);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Perfil actualizado exitosamente.',
-        'data' => new UsuarioResource($usuario)
-    ]);
-}
 
     public function destroy($id, Request $request)
-{
+    {
     $request->validate([
         'password' => 'required|string'
     ]);
@@ -247,7 +247,7 @@ public function updateProfile(UpdateProfileRequest $request)
         'success' => true,
         'message' => 'Usuario eliminado exitosamente'
     ]);
-}
+    }
 
     // WEB Methods
     public function webIndex()
