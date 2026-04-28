@@ -32,9 +32,9 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
-            'created_at' => 'datetime',
-            'updated_at' => 'datetime',
-        ];
+            'created_at' => 'datetime:Y-m-d H:i:s', 
+            'updated_at' => 'datetime:Y-m-d H:i:s',
+        ];  
     }
 
     /**
