@@ -13,10 +13,11 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        'http://localhost:3000', 
-        'https://verdu-stock-frontend.vercel.app',
-        'https://verdu-stock-frontend-git-main-paul-gonzs-projects.vercel.app', // URL de tu captura
+    'https://verdu-stock-frontend.vercel.app',
+    'https://verdu-stock-frontend-git-main-paul-gonzs-projects.vercel.app',
     ],
+
+    'supports_credentials' => true,
 
     'allowed_origins_patterns' => [],
 
