@@ -12,13 +12,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Habilitamos las sesiones para la API
+        // FUNDAMENTAL: Permite que la API use cookies de sesión (Stateful)
+        // Esto le dice a Laravel que confíe en los dominios que pusiste en SANCTUM_STATEFUL_DOMAINS
+        $middleware->statefulApi();
+
+        // Habilitamos las sesiones para la API (como ya tenías)
         $middleware->api(append: [
             \Illuminate\Session\Middleware\StartSession::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
         ]);
 
-        // Mantenemos tu excepción de CSRF para pruebas
+        // Mantenemos tu excepción de CSRF para evitar bloqueos por ahora
         $middleware->validateCsrfTokens(except: [
             '*',
         ]);
