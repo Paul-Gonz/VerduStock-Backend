@@ -1,25 +1,31 @@
 <?php
 
 return [
-    // Usamos '*' para que cualquier ruta nueva que crees funcione sin volver aquí
-    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout', '*'],
+    // Solo las rutas necesarias para evitar huecos de seguridad
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout'],
 
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
         'http://localhost:3000', 
         'https://verdu-stock-frontend.vercel.app',
+        // Esta es la URL de preview de Vercel, está bien dejarla
         'https://verdu-stock-frontend-git-main-paul-gonzs-projects.vercel.app', 
     ],
 
     'allowed_origins_patterns' => [],
 
+    // Permitimos todos los headers porque necesitamos el 'Authorization' para el Token
     'allowed_headers' => ['*'],
 
     'exposed_headers' => [],
 
     'max_age' => 0,
 
-    // Aunque uses Tokens, déjalo en true por si alguna vez mandas headers personalizados
-    'supports_credentials' => true, 
+    /*
+    | Importante: Lo ponemos en 'false' porque estamos usando Bearer Tokens.
+    | Si está en 'true', el navegador exige configuraciones de CORS mucho más
+    | rígidas que suelen fallar en despliegues como Render/Vercel.
+    */
+    'supports_credentials' => false, 
 ];
