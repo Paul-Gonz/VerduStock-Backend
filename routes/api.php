@@ -17,36 +17,37 @@ Route::get('/public-test', function () {
     return response()->json(['status' => 'API Online y Pública']);
 });
 
-// 🔹 AUTENTICACIÓN PÚBLICA
+// 🔹 AUTENTICACIÓN
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/logout', [AuthController::class, 'logout']);
+Route::get('/check-auth', [AuthController::class, 'checkAuth']);
 
-// 🔹 RUTAS PROTEGIDAS POR SANCTUM (TOKEN)
-// Cambiamos 'auth' por 'auth:sanctum'
-Route::middleware(['auth:sanctum'])->group(function () {
-    
-    // Mover Logout y Check-Auth adentro, porque requieren saber quién es el usuario vía Token
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/check-auth', [AuthController::class, 'checkAuth']);
+Route::middleware(['auth'])->group(function () {
     
     // 🔹 DASHBOARD
     Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
 
-    // 🔹 PRODUCTOS
+    // 🔹 PRODUCTOS (Corregido el orden para evitar Error 500)
     Route::prefix('productos')->group(function () {
+        // Especiales
         Route::get('/trashed', [ProductoController::class, 'trashed'])->name('productos.trashed');
         Route::get('/reporte/estadisticas', [ProductoController::class, 'reporte'])->name('productos.reporte');
         Route::get('/alto-desperdicio', [ProductoController::class, 'altoDesperdicio'])->name('productos.alto-desperdicio');
         
+        // CRUD
         Route::get('/', [ProductoController::class, 'index'])->name('productos.index');
         Route::post('/', [ProductoController::class, 'store'])->name('productos.store');
         
+        // El orden aquí es vital: ID al final
         Route::get('/{id}', [ProductoController::class, 'show'])->name('productos.show');
-        Route::get('/{id}/editar', [ProductoController::class, 'edit'])->name('productos.edit');
+        Route::get('/{id}/editar', [ProductoController::class, 'edit'])->name('productos.edit'); // <--- AQUÍ ESTÁ EL ERROR
         Route::put('/{id}', [ProductoController::class, 'update'])->name('productos.update');
         Route::delete('/{id}', [ProductoController::class, 'destroy'])->name('productos.destroy');
         
+        // Acciones Papelera
         Route::post('/{id}/restore', [ProductoController::class, 'restore'])->name('productos.restore');
         Route::delete('/{id}/force', [ProductoController::class, 'forceDelete'])->name('productos.force-delete');
+        Route::get('/exportar/excel', [ProductoController::class, 'exportarExcel'])->name('productos.exportar.excel');
     });
 
     // 🔹 CATEGORÍAS
@@ -84,13 +85,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', [UsuarioController::class, 'destroy'])->name('usuarios.destroy');
     });
 
-    // 🔹 REPORTES
+    //  REPORTES
     Route::prefix('reportes')->group(function () {
-        Route::get('/preview-inventario', [ReporteController::class, 'previewInventarioCompleto']);
-        Route::get('/preview-rentabilidad', [ReporteController::class, 'previewAnalisisRentabilidad']);
+        // PDF Reports
         Route::get('/inventario-completo', [ReporteController::class, 'inventarioCompleto']);
         Route::get('/stock-bajo', [ReporteController::class, 'stockBajo']);
         Route::get('/reporte-desperdicios', [ReporteController::class, 'reporteDesperdicios']);
         Route::get('/analisis-rentabilidad', [ReporteController::class, 'analisisRentabilidad']);
+        Route::get('/test-pdf', [ReporteController::class, 'testPdf']);
+
+        // Excel/CSV Reports (NUEVAS RUTAS - IMPORTANTE)
+        Route::get('/inventario-completo/excel', [ReporteController::class, 'inventarioCompletoExcel']);
+        Route::get('/stock-bajo/excel', [ReporteController::class, 'stockBajoExcel']);
+        Route::get('/reporte-desperdicios/excel', [ReporteController::class, 'reporteDesperdiciosExcel']);
+        Route::get('/analisis-rentabilidad/excel', [ReporteController::class, 'analisisRentabilidadExcel']);
     });
+
 });

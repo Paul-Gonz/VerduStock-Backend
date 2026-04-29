@@ -10,6 +10,12 @@ use App\Models\Proveedores;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\InventarioCompletoExport;
+use App\Exports\StockBajoExport;
+use App\Exports\DesperdiciosExport;
+use App\Exports\RentabilidadExport;
+
 
 class ReporteController extends Controller
 {
@@ -1737,6 +1743,190 @@ class ReporteController extends Controller
         if ($kilogramos <= 20) return 'medio';
         return 'normal';
     }
+/**
+ * Exportar a Excel - Inventario Completo
+ */
+public function inventarioCompletoExcel(Request $request)
+{
+    try {
+        $filters = $request->only(['categoria_id', 'proveedor_id']);
+        
+        $productos = $this->productoRepository->search($filters);
+        
+        // Calcular estadísticas
+        $totalKilosBrutos = $productos->sum('kilogramos');
+        $totalDesperdicio = $productos->sum('desperdicio');
+        $totalKilosNetos = $totalKilosBrutos - $totalDesperdicio;
+        
+        $totalGanancia = $productos->sum(function($p) {
+            $kilosNetos = $p->kilogramos - ($p->desperdicio ?? 0);
+            $gananciaPorKg = $p->precio_venta_kg - $p->precio_compra;
+            return $gananciaPorKg * $kilosNetos;
+        });
+        
+        $gananciaPerdidaDesperdicio = $productos->sum(function($p) {
+            $desperdicio = $p->desperdicio ?? 0;
+            $gananciaPorKg = $p->precio_venta_kg - $p->precio_compra;
+            return $gananciaPorKg * $desperdicio;
+        });
+        
+        $estadisticas = [
+            'total_productos' => $productos->count(),
+            'total_kilos_brutos' => $totalKilosBrutos,
+            'total_desperdicio' => $totalDesperdicio,
+            'total_kilos_netos' => $totalKilosNetos,
+            'porcentaje_desperdicio' => $totalKilosBrutos > 0 ? ($totalDesperdicio / $totalKilosBrutos) * 100 : 0,
+            'valor_inventario_neto' => $productos->sum(function($p) {
+                $kilosNetos = $p->kilogramos - ($p->desperdicio ?? 0);
+                return $kilosNetos * $p->precio_venta_kg;
+            }),
+            'ganancia_perdida_desperdicio' => $gananciaPerdidaDesperdicio,
+            'ganancia_total_proyectada' => $totalGanancia,
+        ];
+        
+        // Usar el exportador de Excel
+        return Excel::download(new InventarioCompletoExport($productos, $estadisticas, $filters), 'reporte-inventario-' . date('Y-m-d') . '.xlsx');
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al generar Excel: ' . $e->getMessage()
+        ], 500);
+    }
+}
 
+/**
+ * Exportar a Excel - Stock Bajo
+ */
+public function stockBajoExcel(Request $request)
+{
+    try {
+        $umbral = $request->get('umbral', 10);
+        $filters = $request->only(['categoria_id', 'proveedor_id']);
+        $filters['reporte'] = true;
+        
+        $productos = $this->productoRepository->search($filters)
+            ->filter(function($producto) use ($umbral) {
+                $kilosNetos = $producto->kilogramos - ($producto->desperdicio ?? 0);
+                return $kilosNetos <= $umbral;
+            });
+        
+        $estadisticas = [
+            'total_productos' => $productos->count(),
+            'productos_criticos' => $productos->filter(function($p) use ($umbral) {
+                $kilosNetos = $p->kilogramos - ($p->desperdicio ?? 0);
+                return $kilosNetos <= ($umbral * 0.5);
+            })->count(),
+            'umbral' => $umbral
+        ];
+        
+        return Excel::download(new StockBajoExport($productos, $estadisticas, $umbral), 'reporte-stock-bajo-' . date('Y-m-d') . '.xlsx');
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al generar Excel: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Exportar a Excel - Desperdicios
+ */
+public function reporteDesperdiciosExcel(Request $request)
+{
+    try {
+        $filters = $request->only(['categoria_id', 'proveedor_id']);
+        $filters['reporte'] = true;
+        
+        $productos = $this->productoRepository->search($filters);
+        
+        $productosConDesperdicio = $productos->filter(function($producto) {
+            return ($producto->desperdicio ?? 0) > 0;
+        });
+        
+        $estadisticas = [
+            'total_productos' => $productosConDesperdicio->count(),
+            'total_desperdicio_kg' => $productosConDesperdicio->sum('desperdicio'),
+            'ganancia_perdida' => $productosConDesperdicio->sum(function($p) {
+                $desperdicio = $p->desperdicio ?? 0;
+                $gananciaPorKg = $p->precio_venta_kg - $p->precio_compra;
+                return $gananciaPorKg * $desperdicio;
+            }),
+            'productos_alto_desperdicio' => $productosConDesperdicio->filter(function($p) {
+                $porcentaje = $p->kilogramos > 0 ? (($p->desperdicio ?? 0) / $p->kilogramos) * 100 : 0;
+                return $porcentaje > 20;
+            })->count()
+        ];
+        
+        return Excel::download(new DesperdiciosExport($productosConDesperdicio, $estadisticas, $filters), 'reporte-desperdicios-' . date('Y-m-d') . '.xlsx');
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al generar Excel: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Exportar a Excel - Análisis de Rentabilidad
+ */
+public function analisisRentabilidadExcel(Request $request)
+{
+    try {
+        $filters = $request->only(['categoria_id', 'proveedor_id']);
+        $filters['reporte'] = true;
+        
+        $productos = $this->productoRepository->search($filters);
+        
+        $productosConMargen = $productos->map(function($producto) {
+            $desperdicio = $producto->desperdicio ?? 0;
+            $kilosNetos = $producto->kilogramos - $desperdicio;
+            $margenAbsoluto = $producto->precio_venta_kg - $producto->precio_compra;
+            $margenPorcentual = $producto->precio_compra > 0 ? 
+                ($margenAbsoluto / $producto->precio_compra) * 100 : 0;
+            $gananciaTotal = $margenAbsoluto * $kilosNetos;
+            
+            return (object) [
+                'nombre' => $producto->nombre,
+                'categoria' => $producto->categoria,
+                'precio_compra' => $producto->precio_compra,
+                'precio_venta_kg' => $producto->precio_venta_kg,
+                'margen_absoluto' => $margenAbsoluto,
+                'margen_porcentual' => $margenPorcentual,
+                'kilos_netos' => $kilosNetos,
+                'ganancia_total' => $gananciaTotal,
+                'rentabilidad' => $this->clasificarRentabilidad($margenPorcentual),
+            ];
+        });
+        
+        $productosOrdenados = $productosConMargen->sortByDesc('margen_porcentual');
+        
+        $estadisticas = [
+            'total_productos' => $productosOrdenados->count(),
+            'margen_promedio' => $productosOrdenados->avg('margen_porcentual'),
+            'ganancia_total' => $productosOrdenados->sum('ganancia_total'),
+        ];
+        
+        return Excel::download(new RentabilidadExport($productosOrdenados, $estadisticas, $filters), 'analisis-rentabilidad-' . date('Y-m-d') . '.xlsx');
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al generar Excel: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+public function testPdf()
+{
+    try {
+        $pdf = PDF::loadHTML('<h1>Test PDF</h1><p>Funciona correctamente</p>');
+        return $pdf->download('test.pdf');
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()]);
+    }
+}
 
 }

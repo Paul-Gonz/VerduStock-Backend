@@ -9,6 +9,12 @@ use App\Models\Proveedores;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
+use App\Exports\ProductosExport;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\InventarioCompletoExport;
+use App\Exports\StockBajoExport;
+use App\Exports\DesperdiciosExport;
+use App\Exports\RentabilidadExport;
 
 class ProductoController extends Controller
 {
@@ -154,4 +160,149 @@ class ProductoController extends Controller
             'detalle' => 'nullable|string|max:500'
         ]);
     }
+    
+    public function exportarExcel(Request $request)
+{
+    $filters = $request->only(['categoria_id', 'proveedor_id', 'busqueda']);
+    
+    $fecha = now()->format('Y-m-d_His');
+    $filename = "reporte_inventario_{$fecha}.xlsx";
+    
+    return Excel::download(new ProductosExport($filters), $filename);
+}
+
+/**
+ * Exportar a Excel - Inventario Completo
+ */
+public function inventarioCompletoExcel(Request $request)
+{
+    try {
+        $filters = $request->only(['categoria_id', 'proveedor_id']);
+        
+        $productos = $this->productoRepository->search($filters);
+        
+        $estadisticas = [
+            'total_productos' => $productos->count(),
+            'total_kilos_brutos' => $productos->sum('kilogramos'),
+            'total_desperdicio' => $productos->sum('desperdicio'),
+            'total_kilos_netos' => $productos->sum('kilogramos') - $productos->sum('desperdicio'),
+            // ... más estadísticas si las necesitas
+        ];
+        
+        return Excel::download(new InventarioCompletoExport($productos, $estadisticas, $filters), 
+            'reporte-inventario-' . date('Y-m-d') . '.xlsx');
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al generar Excel: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Exportar a Excel - Stock Bajo
+ */
+public function stockBajoExcel(Request $request)
+{
+    try {
+        $umbral = $request->get('umbral', 10);
+        $filters = $request->only(['categoria_id', 'proveedor_id']);
+        
+        $productos = $this->productoRepository->search($filters)
+            ->filter(function($producto) use ($umbral) {
+                $kilosNetos = $producto->kilogramos - ($producto->desperdicio ?? 0);
+                return $kilosNetos <= $umbral;
+            });
+        
+        $estadisticas = [
+            'total_productos' => $productos->count(),
+            'umbral' => $umbral
+        ];
+        
+        return Excel::download(new StockBajoExport($productos, $estadisticas, $umbral), 
+            'reporte-stock-bajo-' . date('Y-m-d') . '.xlsx');
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al generar Excel: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Exportar a Excel - Desperdicios
+ */
+public function reporteDesperdiciosExcel(Request $request)
+{
+    try {
+        $filters = $request->only(['categoria_id', 'proveedor_id']);
+        
+        $productos = $this->productoRepository->search($filters);
+        
+        $productosConDesperdicio = $productos->filter(function($producto) {
+            return ($producto->desperdicio ?? 0) > 0;
+        });
+        
+        $estadisticas = [
+            'total_productos' => $productosConDesperdicio->count(),
+            'total_desperdicio_kg' => $productosConDesperdicio->sum('desperdicio')
+        ];
+        
+        return Excel::download(new DesperdiciosExport($productosConDesperdicio, $estadisticas, $filters), 
+            'reporte-desperdicios-' . date('Y-m-d') . '.xlsx');
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al generar Excel: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Exportar a Excel - Análisis de Rentabilidad
+ */
+public function analisisRentabilidadExcel(Request $request)
+{
+    try {
+        $filters = $request->only(['categoria_id', 'proveedor_id']);
+        
+        $productos = $this->productoRepository->search($filters);
+        
+        $productosConMargen = $productos->map(function($producto) {
+            $desperdicio = $producto->desperdicio ?? 0;
+            $kilosNetos = $producto->kilogramos - $desperdicio;
+            $margenAbsoluto = $producto->precio_venta_kg - $producto->precio_compra;
+            $margenPorcentual = $producto->precio_compra > 0 ? 
+                ($margenAbsoluto / $producto->precio_compra) * 100 : 0;
+            
+            return (object) [
+                'nombre' => $producto->nombre,
+                'categoria' => $producto->categoria,
+                'precio_compra' => $producto->precio_compra,
+                'precio_venta_kg' => $producto->precio_venta_kg,
+                'margen_absoluto' => $margenAbsoluto,
+                'margen_porcentual' => $margenPorcentual,
+                'kilos_netos' => $kilosNetos,
+                'ganancia_total' => $margenAbsoluto * $kilosNetos,
+            ];
+        });
+        
+        $estadisticas = [
+            'total_productos' => $productosConMargen->count(),
+            'margen_promedio' => $productosConMargen->avg('margen_porcentual')
+        ];
+        
+        return Excel::download(new RentabilidadExport($productosConMargen, $estadisticas, $filters), 
+            'analisis-rentabilidad-' . date('Y-m-d') . '.xlsx');
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al generar Excel: ' . $e->getMessage()
+        ], 500);
+    }
+}
 }
