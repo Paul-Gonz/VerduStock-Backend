@@ -2,7 +2,8 @@
 
 namespace App\Repositories;
 
-use App\Models\User;
+// 1. Cambiamos el import para usar el modelo User
+use App\Models\User; 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
@@ -10,7 +11,8 @@ class UsuarioRepository
 {
     protected $model;
 
-    public function __construct(Usuario $usuario)
+    // 2. Cambiamos el TypeHint en el constructor
+    public function __construct(User $usuario) 
     {
         $this->model = $usuario;
     }
