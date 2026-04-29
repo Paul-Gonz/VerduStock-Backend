@@ -22,7 +22,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout']);
 Route::get('/check-auth', [AuthController::class, 'checkAuth']);
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
     
     // 🔹 DASHBOARD
     Route::get('/dashboard', [AuthController::class, 'dashboard'])->name('dashboard');
